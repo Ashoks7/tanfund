@@ -1,3 +1,4 @@
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import nltk
@@ -14,9 +15,9 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.metrics import roc_auc_score
 import streamlit as st
 import numpy as np
-from streamlit import option_menu
 import plotly.express as px
 import time
+from transformers import pipeline
 import base64
 
 
@@ -27,7 +28,7 @@ def shark(user_sentence):
  df["deal/no deal"]=df["Deal"].copy()
  df['deal/no deal']=df['deal/no deal'].apply(lambda x: 'Deal' if x != 'No Deal' else x)
  df['deal in binary']=df['deal/no deal'].apply(lambda x: 1 if x != 'No Deal' else x)
- df["deal in binary"] = df["deal in binary"].replace(['No Deal'],[0])
+ df["deal in binary"] = df["deal in binary"].replace(['No Deal'],[0]).astype(int)
 # Replacing punctuations with space
  df['Idea_processed'] = df['Idea'].str.replace("[^a-zA-Z0-9]", " ")
  df['Idea_processed'] = df['Idea_processed'].astype(str)
@@ -154,37 +155,8 @@ def shark(user_sentence):
 
  return b
 
-def invest():
- df2 = pd.read_excel('SharkTankIndiaS02.xlsx')
- df3=df2[["Idea","Brand","Deal","Amit Jain","Namita","Anupam","Vineeta","Aman","Piyush"]].copy()
- df3["deal/no deal"]=df2["Deal"].copy()
- df3['deal/no deal']=df3['deal/no deal'].apply(lambda x: 'Deal' if x != 'No Deal' else x)
- df3["Amit Jain"] = df3["Amit Jain"].replace({'Amit':"Deal", "ABSENT":"No Deal", "NaN":"No Deal"})
- df3["Namita"] = df3["Namita"].replace({'Namita':"Deal", "ABSENT":"No Deal", "NaN":"No Deal"})
- df3["Anupam"] = df3["Anupam"].replace({'Anupam':"Deal", "ABSENT":"No Deal", "NaN":"No Deal"})
- df3["Vineeta"] = df3["Vineeta"].replace({'Vineeta':"Deal", "ABSENT":"No Deal", "NaN":"No Deal"})
- df3["Aman"] = df3["Aman"].replace({'Aman':"Deal", "ABSENT":"No Deal", "NaN":"No Deal"})
- df3["Piyush"] = df3["Piyush"].replace({'Piyush':"Deal","Peyush":"Deal", "ABSENT":"No Deal", "NaN":"No Deal"})
- d = [df3["Amit Jain"].value_counts(), df3["Namita"].value_counts(), df3["Anupam"].value_counts(),df3["Vineeta"].value_counts(), df3["Aman"].value_counts(), df3["Piyush"].value_counts()]
- c=pd.DataFrame(d)
- c.reset_index(inplace = True)
 
- return c
 
-def interest():
- df4 = pd.read_excel('SharkTankIndiaS02.xlsx')
- df5=df4[["Idea","Brand","Deal","Amit Jain","Namita","Anupam","Vineeta","Aman","Piyush"]].copy()
- df5["Amit Jain"] = df5["Amit Jain"].replace({'Amit':"Deal", "ABSENT":"No Deal", "NaN":"No Deal"})
- df5["Namita"] = df5["Namita"].replace({'Namita':"Deal", "ABSENT":"No Deal", "NaN":"No Deal"})
- df5["Anupam"] = df5["Anupam"].replace({'Anupam':"Deal", "ABSENT":"No Deal", "NaN":"No Deal"})
- df5["Vineeta"] = df5["Vineeta"].replace({'Vineeta':"Deal", "ABSENT":"No Deal", "NaN":"No Deal"})
- df5["Aman"] = df5["Aman"].replace({'Aman':"Deal", "ABSENT":"No Deal", "NaN":"No Deal"})
- df5["Piyush"] = df5["Piyush"].replace({'Piyush':"Deal","Peyush":"Deal", "ABSENT":"No Deal", "NaN":"No Deal"})
- df6=df5[["Idea",option1,option2]]
- df7= df6.loc[(df6[option1]=="Deal")&(df6[option2]=="Deal")]
- df7["investor"]= df7[option1]
-
- return df7
 
 def data():
  df8 = pd.read_excel('SharkTankIndiaS02.xlsx')
@@ -316,15 +288,13 @@ st.set_page_config(layout="wide", initial_sidebar_state='expanded')
 
 
 
-selected = option_menu(menu_title=None, options=["ML model","Data visualization","Code"], icons=["clipboard-data","award","coin"], orientation="horizontal")
 
-if selected=="ML model":
- def add_bg_from_url():
+def add_bg_from_url():
     st.markdown(
          f"""
          <style>
          .stApp {{
-             background-image: url("https://i.ytimg.com/vi/-TO4HaPtVH8/maxresdefault.jpg");
+             background-image: url("https://startuptn.in/wp-content/uploads/2022/10/startuptn.jpg");
              background-attachment: fixed;
              background-size: cover
          }}
@@ -333,104 +303,35 @@ if selected=="ML model":
          unsafe_allow_html=True
      )
 
- add_bg_from_url()
+add_bg_from_url()
  
 # GUI.py
- cls1,cls2,cls3=st.columns((0.5,3,0.5))
- with cls2:
+cls1,cls2,cls3=st.columns((0.5,3,0.5))
+with cls2:
   st.title("Will you get :orange[Funding] for your Idea :orange[?]")
 
- cl1,cl2,cl3=st.columns((1,2,1))
+cl1,cl2,cl3=st.columns((1,2,1))
  
- with cl2:
+with cl2:
 # Get input from user for hashtag
-  user_sentence = st.text_input("Enter the idea:")
+  paragraph = st.text_input("Enter the idea:")
 
-  if st.button("predict"):  
-   b = shark(user_sentence)
+  if st.button("predict"):
+   summarizer = pipeline("summarization")
+   summary = summarizer(paragraph, max_length=150, min_length=30, do_sample=False)[0]["summary_text"]
+   user_sentence = summary
    progress_bar = cl2.progress(0)
    for perc_completed in range(100):
     time.sleep(0.05)
     progress_bar.progress(perc_completed+1)
+   st.button("idea summary:")
+   st.button(summary)
+   b = shark(user_sentence)
    st.button(b)
 
-if selected=="Data visualization":
- st.markdown('### Metrics')
- col1, col2, col3 = st.columns(3)
- col1.metric('Total pitch', '# 163')
- col2.metric('Deal', '# 95')
- col3.metric('No Deal', '# 68')
- with st.sidebar:
-  selected = option_menu(menu_title=None, options=["About Data","About Investor"], icons=["clipboard-data","coin"], orientation="horizontal")
-  if selected == "About Investor":
-    option1= st.selectbox("Select Investor 1",("Amit Jain","Namita","Anupam","Vineeta","Aman","Piyush"))
-    option2= st.selectbox("Select Investor 2",("Namita","Amit Jain","Anupam","Vineeta","Aman","Piyush"))
-
-
- if selected == "About Investor":
-   if st.sidebar.button("show"):
-    st.markdown('''----''')
-    c1,c2 = st.columns((6,4))
-    with c1:
-        c= invest()
-        st.markdown('##### Comparing no of deals done by investors')
-        fig = px.pie(c, values="Deal", names="index", hole=0.75, width=400, height=300)
-        st.write(fig)
-
-    with c2:
-      
-        df7= interest()
-        st.markdown('##### Two investors invested in same company')
-        e=[df7["investor"].value_counts()]
-        f=pd.DataFrame(e)
-        f.reset_index(inplace = True)
-        fig2 = px.bar(f, x="index", y=["Deal"], text_auto=True, width=400, height=300)
-        st.write(fig2)
-    
-    st.markdown('''----''')
-    st.markdown('##### Ideas where both of them invested')
-    with st.expander("click to read"):
-        st.dataframe(df7["Idea"])
-
- if selected == "About Data":
-    if st.sidebar.button("show"):
-     df9, accuracy, ra, fi=data()
-     st.markdown('''----''')
-     st.markdown("##### Data frame head()")
-     st.dataframe(df9.head())
-     st.markdown('''----''')
-     st.markdown("##### ML model score")
-     colu1,colu2=st.columns(2)
-     colu1.metric('Accuracy of ML Model', accuracy)
-     colu2.metric('Auroc Score', ra)
-     st.markdown('''----''')
-     st.markdown("##### Feature impotance")
-     with st.expander("click to read"):
-        st.dataframe(fi)
-if selected=="Code":
-
-   def add_bg_from_url():
-    st.markdown(
-         f"""
-         <style>
-         .stApp {{
-             background-image: url("https://i.ytimg.com/vi/-TO4HaPtVH8/maxresdefault.jpg");
-             background-attachment: fixed;
-             background-size: cover
-         }}
-         </style>
-         """,
-         unsafe_allow_html=True
-     )
-
-   add_bg_from_url()
-   colu1,colu2,colu3=st.columns((1,2,1))
-   with colu2:
-    with open('C:/Users/DELL/sharktankindia2.pdf', 'rb') as f:
-     base64_pdf = base64.b64encode(f.read()).decode('utf-8')
-    
-    st.markdown(f'<embed src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf">', unsafe_allow_html=True)
-
+# pls download sharktank data from kaggle so you can see the idea is good or not
+# in vscode pls run in terminal in below format
+# python -m streamlit run tanfund.py
 
 
 
